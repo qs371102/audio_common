@@ -119,7 +119,7 @@ class soundtype:
         self.lock.acquire()
         try:
             self.staleness = 0
-            if self.state == self.COUNTING:
+            if self.state != self.STOPPED:
                 self.stop()
 
             if self.state == self.STOPPED:
@@ -165,18 +165,21 @@ class soundtype:
         position = 0
         duration = 0
         try:
-            position = self.sound.query_position(Gst.Format.TIME)[0]
-            duration = self.sound.query_duration(Gst.Format.TIME)[0]
+            position = self.sound.query_position(Gst.Format.TIME)[1]
+            duration = self.sound.query_duration(Gst.Format.TIME)[1]
         except Exception, e:
             position = 0
             duration = 0
         finally:
             self.lock.release()
 
-        if position != duration:
+        if position < duration:
             self.staleness = 0
         else:
-            self.staleness = self.staleness + 1
+            if self.state == self.LOOPING:
+                self.loop()
+            else:    
+                self.staleness = self.staleness + 1
         return self.staleness
 
     def get_playing(self):
